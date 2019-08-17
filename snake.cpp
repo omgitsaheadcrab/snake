@@ -1,12 +1,27 @@
 #include <iostream>
-#include <curses.h>
 #include <string>
+#include <list>
+
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
+
+#include <curses.h>
+
+enum class Heading { north, south, east, west };
+enum class Direction { straight, left, right };
+
+struct Segment {
+  int x;
+  int y;
+  Heading heading;
+};
 
 class Snake {
 private:
   int nScreenWidth;
   int nScreenHeight;
   const std::string greet = "Press any key to begin.";
+  std::list<Segment> snake;
 
   void draw_border(const int &x1, const int &y1, const int &x2, const int &y2) const {
     mvhline(y1, x1, 0, x2-x1);
@@ -33,6 +48,95 @@ private:
 		i + (nScreenWidth - greet.size()) / 2,
 		" ");
     }
+  }
+
+  void del_tail() {
+    // Clear tail on screen
+    mvwaddstr(stdscr, snake.back().y, snake.back().x, " ");
+
+    // Delete tail 
+    snake.pop_back();
+  }
+
+  void move_head(const Direction dir) {
+    // Create new head segment
+    int newx, newy;
+    Heading newHeading;
+
+    // Update position for new head
+    switch(snake.front().heading) {
+    case Heading::north :
+      if (dir == Direction::straight) {
+	newx = snake.front().x;
+	newy = snake.front().y + 1;
+	newHeading = Heading::north;
+      }
+      else if (dir == Direction::left) {
+	newx = snake.front().x + 1;
+	newy = snake.front().y;
+	newHeading = Heading::west;
+      }
+      else if (dir == Direction::right) {
+	newx = snake.front().x - 1;
+	newy = snake.front().y;
+	newHeading = Heading::east;
+      }
+    case Heading::south :
+      if (dir == Direction::straight) {
+	newx = snake.front().x;
+	newy = snake.front().y - 1;
+	newHeading = Heading::south;
+      }
+      else if (dir == Direction::left) {
+	newx = snake.front().x - 1;
+	newy = snake.front().y;
+	newHeading = Heading::east;
+      }
+      else if (dir == Direction::right) {
+	newx = snake.front().x + 1;
+	newy = snake.front().y;
+	newHeading = Heading::west;
+      }
+    case Heading::east :
+      if (dir == Direction::straight) {
+	newx = snake.front().x - 1;
+	newy = snake.front().y;
+	newHeading = Heading::east;
+      }
+      else if (dir == Direction::left) {
+	newx = snake.front().x;
+	newy = snake.front().y + 1;
+	newHeading = Heading::north;
+      }
+      else if (dir == Direction::right) {
+	newx = snake.front().x;
+	newy = snake.front().y - 1;
+	newHeading = Heading::south;
+      }
+    case Heading::west :
+      if (dir == Direction::straight) {
+	newx = snake.front().x + 1;
+	newy = snake.front().y;
+	newHeading = Heading::west;
+      }
+      else if (dir == Direction::left) {
+	newx = snake.front().x;
+	newy = snake.front().y - 1;
+	newHeading = Heading::south;
+      }
+      else if (dir == Direction::right) {
+	newx = snake.front().x;
+	newy = snake.front().y + 1;
+	newHeading = Heading::north;
+      }
+    }
+    
+    // Redraw old head
+    mvwaddstr(stdscr, snake.front().y, snake.front().x, "o");
+
+    // Add new head and draw
+    snake.push_front({newx,newy,newHeading});
+    mvwaddstr(stdscr, snake.front().y, snake.front().x, "O");
   }
   
 public:
@@ -64,6 +168,17 @@ public:
     
     // Flush initial draws to screen.
     wrefresh(stdscr);
+    getch();
+    clear_greet(greet);
+
+    // Init snake (3 segments)
+    snake.push_front({nScreenWidth/2,nScreenHeight/2,Heading::east});
+    mvwaddstr(stdscr, snake.front().y, snake.front().x , "O");
+    move_head(Direction::straight);
+    move_head(Direction::straight);
+    
+    wrefresh(stdscr);
+    nodelay(stdscr, true);
   }
 
   void input() {
@@ -72,16 +187,14 @@ public:
     
     if (key == (char)27 || key == 'q') {
       this->gameOver = true;          
-    } else if (key == KEY_UP || key == 'w' || key == 'W') {
-      mvwaddstr(stdscr,0, 20, "\xF0\x9F\x8D\x8C");
-      clear_greet(greet);
-    } else if (key == KEY_DOWN || key == 's' || key == 'S') {
-      mvwaddch(stdscr,20, 20, '.');
     } else if (key == KEY_LEFT || key == 'a' || key == 'A') {
-      mvwaddch(stdscr,10, 10, '.');
+      move_head(Direction::left);
     } else if (key == KEY_RIGHT || key == 'd' || key == 'D') {
-      mvwaddch(stdscr,10, 30, '.');
+      move_head(Direction::right);
+    } else if (key == ERR) {
+      move_head(Direction::straight);
     }
+    del_tail();
   }
 
   void logic() {}
@@ -101,7 +214,7 @@ int main()
     game.input();
     game.logic();
     game.draw();
-    //sleep(10);
+    std::this_thread::sleep_for (std::chrono::seconds(1));
   }
 
   return endwin();
