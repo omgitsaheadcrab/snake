@@ -7,8 +7,26 @@
 
 #include <curses.h>
 
-enum class Heading { north, south, east, west };
 enum class Direction { straight, left, right };
+
+struct Heading {
+  int x;
+  int y;
+
+  void rotate_left() {
+    int x1 = y;
+    int y1 = -x;
+    x = x1;
+    y = y1;
+  }
+
+  void rotate_right() {
+    int x1 = -y;
+    int y1 = x;
+    x = x1;
+    y = y1;
+  }
+};
 
 struct Segment {
   int x;
@@ -20,7 +38,7 @@ class Snake {
 private:
   int nScreenWidth;
   int nScreenHeight;
-  const std::string greet = "Press any key to begin.";
+  const std::string greet = "Press any key to start.";
   std::list<Segment> snake;
 
   void draw_border(const int &x1, const int &y1, const int &x2, const int &y2) const {
@@ -59,83 +77,29 @@ private:
   }
 
   void move_head(const Direction dir) {
-    // Create new head segment
-    int newx, newy;
-    Heading newHeading;
-
-    // Update position for new head
-    switch(snake.front().heading) {
-    case Heading::north :
-      if (dir == Direction::straight) {
-	newx = snake.front().x;
-	newy = snake.front().y + 1;
-	newHeading = Heading::north;
-      }
-      else if (dir == Direction::left) {
-	newx = snake.front().x + 1;
-	newy = snake.front().y;
-	newHeading = Heading::west;
-      }
-      else if (dir == Direction::right) {
-	newx = snake.front().x - 1;
-	newy = snake.front().y;
-	newHeading = Heading::east;
-      }
-    case Heading::south :
-      if (dir == Direction::straight) {
-	newx = snake.front().x;
-	newy = snake.front().y - 1;
-	newHeading = Heading::south;
-      }
-      else if (dir == Direction::left) {
-	newx = snake.front().x - 1;
-	newy = snake.front().y;
-	newHeading = Heading::east;
-      }
-      else if (dir == Direction::right) {
-	newx = snake.front().x + 1;
-	newy = snake.front().y;
-	newHeading = Heading::west;
-      }
-    case Heading::east :
-      if (dir == Direction::straight) {
-	newx = snake.front().x - 1;
-	newy = snake.front().y;
-	newHeading = Heading::east;
-      }
-      else if (dir == Direction::left) {
-	newx = snake.front().x;
-	newy = snake.front().y + 1;
-	newHeading = Heading::north;
-      }
-      else if (dir == Direction::right) {
-	newx = snake.front().x;
-	newy = snake.front().y - 1;
-	newHeading = Heading::south;
-      }
-    case Heading::west :
-      if (dir == Direction::straight) {
-	newx = snake.front().x + 1;
-	newy = snake.front().y;
-	newHeading = Heading::west;
-      }
-      else if (dir == Direction::left) {
-	newx = snake.front().x;
-	newy = snake.front().y - 1;
-	newHeading = Heading::south;
-      }
-      else if (dir == Direction::right) {
-	newx = snake.front().x;
-	newy = snake.front().y + 1;
-	newHeading = Heading::north;
-      }
-    }
-    
     // Redraw old head
     mvwaddstr(stdscr, snake.front().y, snake.front().x, "o");
+    
+    // Create new head segment using old head values
+    snake.push_front({snake.front().x,snake.front().y,snake.front().heading});
 
-    // Add new head and draw
-    snake.push_front({newx,newy,newHeading});
+    // Update heading
+    switch(dir) {
+    case Direction::left:
+      snake.front().heading.rotate_left();
+      break;
+    case Direction::right:
+      snake.front().heading.rotate_right();
+      break;
+    case Direction::straight:
+      break;
+    }
+
+    // Update x and y of head
+    snake.front().x += snake.front().heading.x;
+    snake.front().y += snake.front().heading.y;
+   
+    // Draw new head
     mvwaddstr(stdscr, snake.front().y, snake.front().x, "O");
   }
   
@@ -171,8 +135,8 @@ public:
     getch();
     clear_greet(greet);
 
-    // Init snake (3 segments)
-    snake.push_front({nScreenWidth/2,nScreenHeight/2,Heading::east});
+    // Init snake (3 segments moving east)
+    snake.push_front({nScreenWidth/2,nScreenHeight/2,{1,0}});
     mvwaddstr(stdscr, snake.front().y, snake.front().x , "O");
     move_head(Direction::straight);
     move_head(Direction::straight);
@@ -191,13 +155,15 @@ public:
       move_head(Direction::left);
     } else if (key == KEY_RIGHT || key == 'd' || key == 'D') {
       move_head(Direction::right);
-    } else if (key == ERR) {
+    } else {
       move_head(Direction::straight);
     }
     del_tail();
   }
 
-  void logic() {}
+  void logic() {
+    // check for collisions
+  }
 
   void draw() {
     // Flush draws to screen.
