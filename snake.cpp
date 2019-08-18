@@ -1,11 +1,12 @@
-#include <iostream>
-#include <string>
-#include <list>
-
+#include <iostream>       // std::cout, std::endl
+#include <string>         // std::string
+#include <list>           // std::list
+#include <cstdlib>        // std::rand, std::srand
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
+#include <ctime>          // std::time
 
-#include <curses.h>
+#include <curses.h>       // ncurses
 
 enum class Direction { straight, left, right };
 
@@ -40,6 +41,7 @@ private:
   int nScreenHeight;
   const std::string greet = "Press any key to start.";
   std::list<Segment> snake;
+  Segment apple;
 
   void draw_border(const int &x1, const int &y1, const int &x2, const int &y2) const {
     mvhline(y1, x1, 0, x2-x1);
@@ -102,6 +104,23 @@ private:
     // Draw new head
     mvwaddstr(stdscr, snake.front().y, snake.front().x, "O");
   }
+
+  void new_apple() {
+    bool snakeCollision = true;
+    int wLoc, hLoc;
+    while (snakeCollision) {
+      snakeCollision = false;
+      wLoc = rand() % (nScreenWidth-3) + 2;
+      hLoc = rand() % (nScreenHeight-3) + 3;
+      for (auto s : snake) {
+	if (s.x == wLoc && s.y == hLoc) {
+	  snakeCollision = true;
+	}
+      }
+    }
+    apple = Segment{wLoc,hLoc,{0,0}};
+    mvwaddstr(stdscr, apple.y, apple.x, "%");
+  }
   
 public:
   bool gameOver = false;
@@ -127,11 +146,13 @@ public:
     }
     
     // Draw background.
-    draw_border(1,1,nScreenWidth-2,nScreenHeight-2);
+    draw_border(1,2,nScreenWidth-2,nScreenHeight-2);
     draw_greet(greet);
     
     // Flush initial draws to screen.
     wrefresh(stdscr);
+
+    // Wait for any key press to start.
     getch();
     clear_greet(greet);
 
@@ -140,6 +161,10 @@ public:
     mvwaddstr(stdscr, snake.front().y, snake.front().x , "O");
     move_head(Direction::straight);
     move_head(Direction::straight);
+
+    // Init random seed and first apple
+    std::srand(std::time(NULL));
+    new_apple();
     
     wrefresh(stdscr);
     nodelay(stdscr, true);
@@ -158,11 +183,21 @@ public:
     } else {
       move_head(Direction::straight);
     }
-    del_tail();
   }
 
   void logic() {
-    // check for collisions
+    // check for wall collision
+    if (snake.front().x <= 1 || snake.front().x >= nScreenWidth-2
+	|| snake.front().y <= 2 || snake.front().y >= nScreenHeight-2) {
+      gameOver = true;
+      // check wall or snake collision -> gameover
+      
+    } else if (snake.front().x == apple.x && snake.front().y == apple.y){
+      // check apple collision -> score increase, new_apple
+      new_apple();
+    } else {
+      del_tail();
+    }
   }
 
   void draw() {
@@ -180,7 +215,7 @@ int main()
     game.input();
     game.logic();
     game.draw();
-    std::this_thread::sleep_for (std::chrono::seconds(1));
+    std::this_thread::sleep_for (std::chrono::milliseconds(300));
   }
 
   return endwin();
