@@ -42,6 +42,7 @@ private:
   const std::string greet = "Press any key to start.";
   std::list<Segment> snake;
   Segment apple;
+  int score = 0;
 
   void draw_border(const int &x1, const int &y1, const int &x2, const int &y2) const {
     mvhline(y1, x1, 0, x2-x1);
@@ -110,8 +111,8 @@ private:
     int wLoc, hLoc;
     while (snakeCollision) {
       snakeCollision = false;
-      wLoc = rand() % (nScreenWidth-3) + 2;
-      hLoc = rand() % (nScreenHeight-3) + 3;
+      wLoc = (rand() % (nScreenWidth-5)) + 2;
+      hLoc = (rand() % (nScreenHeight-6)) + 3;
       for (auto s : snake) {
 	if (s.x == wLoc && s.y == hLoc) {
 	  snakeCollision = true;
@@ -120,6 +121,33 @@ private:
     }
     apple = Segment{wLoc,hLoc,{0,0}};
     mvwaddstr(stdscr, apple.y, apple.x, "%");
+  }
+
+  bool collision_check() {
+    bool collision = false;
+
+    // Check for collision with wall
+    if (snake.front().x <= 1 || snake.front().x >= nScreenWidth-2
+	|| snake.front().y <= 2 || snake.front().y >= nScreenHeight-2) {
+      collision = true;
+    }
+
+    // Check for collision with self
+    for(std::list<Segment>::iterator s = snake.begin(); s != snake.end(); ++s) {
+      if (s != snake.begin() && s->x == snake.front().x && s->y == snake.front().y) {
+	collision = true;
+      }
+    }
+    return collision;
+  }
+
+  void increase_score() {
+    score+=1000;
+    std::string sscore = std::to_string(score);
+    for (int i = 4-sscore.size(); i > 0; --i) {
+      sscore.insert(0," ");
+    }
+    mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
   }
   
 public:
@@ -148,6 +176,12 @@ public:
     // Draw background.
     draw_border(1,2,nScreenWidth-2,nScreenHeight-2);
     draw_greet(greet);
+    mvwaddstr(stdscr,1,nScreenWidth-13,"Score: ");
+    std::string sscore = std::to_string(score);
+    for (int i = 4-sscore.size(); i > 0; --i) {
+      sscore.insert(0," ");
+    }
+    mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
     
     // Flush initial draws to screen.
     wrefresh(stdscr);
@@ -187,13 +221,13 @@ public:
 
   void logic() {
     // check for wall collision
-    if (snake.front().x <= 1 || snake.front().x >= nScreenWidth-2
-	|| snake.front().y <= 2 || snake.front().y >= nScreenHeight-2) {
-      gameOver = true;
+    bool collision = collision_check();
+    if (collision) {
       // check wall or snake collision -> gameover
-      
+      gameOver = true;
     } else if (snake.front().x == apple.x && snake.front().y == apple.y){
       // check apple collision -> score increase, new_apple
+      increase_score();
       new_apple();
     } else {
       del_tail();
