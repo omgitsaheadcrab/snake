@@ -43,6 +43,8 @@ private:
   std::list<Segment> snake;
   Segment apple;
   int score = 0;
+  int speed = 260;
+  int baseSpeed = 260;
 
   void draw_border(const int &x1, const int &y1, const int &x2, const int &y2) const {
     mvhline(y1, x1, 0, x2-x1);
@@ -142,12 +144,14 @@ private:
   }
 
   void increase_score() {
-    score+=1000;
+    score+=1;
     std::string sscore = std::to_string(score);
     for (int i = 4-sscore.size(); i > 0; --i) {
       sscore.insert(0," ");
     }
     mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
+
+    if (baseSpeed >= 42) { baseSpeed-=2; }
   }
   
 public:
@@ -165,10 +169,10 @@ public:
     
     if (has_colors() == FALSE) {
       endwin();
-      std::cerr << "Your terminal does not support color\n" << std::endl;
+      std::cerr << "Your terminal does not support color.\n" << std::endl;
     } else {
       start_color();
-      init_pair(1, COLOR_RED, COLOR_BLACK);
+      init_pair(1, COLOR_WHITE, COLOR_BLACK);
       attron(A_BOLD);
       color_set(1, nullptr);
     }
@@ -232,6 +236,11 @@ public:
     } else {
       del_tail();
     }
+    
+    // Timing (direction dependant)
+    if (snake.front().heading.x != 0) { speed = baseSpeed*0.6; }
+    else { speed = baseSpeed; }
+    std::this_thread::sleep_for (std::chrono::milliseconds(speed));
   }
 
   void draw() {
@@ -249,7 +258,6 @@ int main()
     game.input();
     game.logic();
     game.draw();
-    std::this_thread::sleep_for (std::chrono::milliseconds(300));
   }
 
   return endwin();
