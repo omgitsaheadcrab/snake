@@ -1,5 +1,5 @@
 #OBJS specifies which files to compile as part of the project
-OBJS = snake.cpp
+OBJS = main.cpp snake.cpp heading.cpp
 
 #CC specifies which compiler we're using
 CC = g++
