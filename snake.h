@@ -35,4 +35,5 @@ private:
   void new_apple();
   bool collision_check();
   void increase_score();
+  void about_splash();
 };
