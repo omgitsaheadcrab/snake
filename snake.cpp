@@ -38,35 +38,18 @@ void Snake::init() {
     color_set(1, nullptr);
     
   }
-    
-  // Draw background.
-  draw_border(1,2,nScreenWidth-2,nScreenHeight-2);
-  draw_greet(greet);
-  mvwaddstr(stdscr,1,nScreenWidth-13,"Score: ");
-  std::string sscore = std::to_string(score);
-  for (int i = 4-sscore.size(); i > 0; --i) {
-    sscore.insert(0," ");
-  }
-  mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
-    
-  // Flush initial draws to screen.
-  wrefresh(stdscr);
+  // Init random seed
+  std::srand(std::time(NULL));
 
+  // Run rest of initialisation
+  reset();
+
+  draw_greet(greet);
+  
   // Wait for any key press to start.
+  nodelay(stdscr, false);
   getch();
   clear_greet(greet);
-
-  // Init snake (3 segments moving east)
-  snake.push_front({nScreenWidth/2,nScreenHeight/2,{1,0}});
-  mvwaddstr(stdscr, snake.front().y, snake.front().x , "O");
-  move_head(Direction::straight);
-  move_head(Direction::straight);
-
-  // Init random seed and first apple
-  std::srand(std::time(NULL));
-  new_apple();
-    
-  wrefresh(stdscr);
   nodelay(stdscr, true);
 }
 
@@ -97,9 +80,17 @@ void Snake::logic() {
     about_splash();
     nodelay(stdscr, false);
     getch();
+    reset();
+    nodelay(stdscr, true);
   } else if (collision) {
-    // check wall or snake collision -> gameover
-    gameOver = true;
+    // check wall or snake collision
+    draw_dead();
+    nodelay(stdscr, false);
+    draw_greet(replay);
+    int key = getch();
+    nodelay(stdscr, true);
+    if (key == ' ') { reset(); }
+    else { gameOver = true; }
   } else {
     del_tail();
   }
@@ -112,6 +103,43 @@ void Snake::logic() {
 
 void Snake::draw() {
   // Flush draws to screen.
+  wrefresh(stdscr);
+}
+
+void Snake::reset() {
+  // Clear screen
+  wclear(stdscr);
+
+  // Fill with black
+  wbkgd(stdscr, COLOR_PAIR(1));
+
+  // Reset score, speed, basespeed
+  score = 0;
+  speed = 260;
+  baseSpeed = 260;
+
+  // Draw background.
+  draw_border(1,2,nScreenWidth-2,nScreenHeight-2);
+  mvwaddstr(stdscr,1,nScreenWidth-13,"Score: ");
+  std::string sscore = std::to_string(score);
+  for (int i = 4-sscore.size(); i > 0; --i) {
+    sscore.insert(0," ");
+  }
+  mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
+    
+  // Flush initial draws to screen.
+  wrefresh(stdscr);
+
+  // Init snake (3 segments moving east)
+  if (!snake.empty()) { snake.clear(); }
+  snake.push_front({nScreenWidth/2,nScreenHeight/2,{1,0}});
+  mvwaddstr(stdscr, snake.front().y, snake.front().x , "O");
+  move_head(Direction::straight);
+  move_head(Direction::straight);
+
+  // Init random seed and first apple
+  new_apple();
+    
   wrefresh(stdscr);
 }
 
@@ -225,4 +253,14 @@ void Snake::increase_score() {
   mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
 
   if (baseSpeed >= 42) { baseSpeed-=2; }
+}
+
+void Snake::draw_dead() {
+
+  mvwaddstr(stdscr, snake.front().y, snake.front().x, "X");
+  for(std::list<Segment>::iterator s = snake.begin(); s != snake.end(); ++s) {
+    if (s != snake.begin()) {
+      mvwaddstr(stdscr, s->y, s->x, "x");
+    }
+  }
 }
