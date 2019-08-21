@@ -24,16 +24,19 @@ void Snake::init() {
     std::cerr << "Your terminal does not support color.\n" << std::endl;
   } else {
     start_color();
+    use_default_colors();
     init_color(8, 988, 777, 0);
     init_color(9, 722, 546, 0);
     init_color(10, 289, 773, 988);
     init_color(11, 0, 0, 0);
+    init_color(12, 850, 850, 850);
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, 8);
     init_pair(3, COLOR_WHITE, 9);
     init_pair(4, COLOR_WHITE, 10);
     init_pair(5, COLOR_WHITE, 11);
     init_pair(6, COLOR_BLACK, COLOR_WHITE);
+    init_pair(7, 12, COLOR_BLACK);
     attron(A_BOLD);
     color_set(1, nullptr);
     
@@ -120,13 +123,22 @@ void Snake::reset() {
 
   // Draw background.
   draw_border(1,2,nScreenWidth-2,nScreenHeight-2);
+
+    
   mvwaddstr(stdscr,1,nScreenWidth-13,"Score: ");
   std::string sscore = std::to_string(score);
   for (int i = 4-sscore.size(); i > 0; --i) {
     sscore.insert(0," ");
   }
   mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
-    
+  
+  mvwaddstr(stdscr,0,nScreenWidth-18,"High Score: ");
+  std::string hisscore = std::to_string(hiscore);
+  for (int i = 4-hisscore.size(); i > 0; --i) {
+    hisscore.insert(0," ");
+  }
+  mvwaddstr(stdscr,0,nScreenWidth-6,hisscore.c_str());
+
   // Flush initial draws to screen.
   wrefresh(stdscr);
 
@@ -156,6 +168,10 @@ void Snake::draw_border(const int &x1, const int &y1, const int &x2, const int &
   mvaddch(y2, x1, ACS_LLCORNER);
   mvaddch(y1, x2, ACS_URCORNER);
   mvaddch(y2, x2, ACS_LRCORNER);
+  
+  attron(COLOR_PAIR(7));
+  mvaddch(5,1,ACS_VLINE);
+  attroff(COLOR_PAIR(7));
 }
   
 void Snake::draw_greet(const std::string &greet) const {
@@ -246,11 +262,22 @@ bool Snake::collision_check() {
 
 void Snake::increase_score() {
   score+=1;
+
   std::string sscore = std::to_string(score);
   for (int i = 4-sscore.size(); i > 0; --i) {
     sscore.insert(0," ");
   }
   mvwaddstr(stdscr,1,nScreenWidth-6,sscore.c_str());
+  
+  if (score > hiscore) {
+    hiscore = (score > hiscore ? score : hiscore);
+
+    std::string hisscore = std::to_string(hiscore);
+    for (int i = 4-hisscore.size(); i > 0; --i) {
+      hisscore.insert(0," ");
+    }
+    mvwaddstr(stdscr,0,nScreenWidth-6,hisscore.c_str());
+  }
 
   if (baseSpeed >= 42) { baseSpeed-=2; }
 }

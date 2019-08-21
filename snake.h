@@ -26,6 +26,7 @@ private:
   std::list<Segment> snake;
   Segment apple;
   int score = 0;
+  int hiscore = 0;
   int speed = 260;
   int baseSpeed = 260;
   bool playAgain = true;
