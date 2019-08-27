@@ -2,6 +2,8 @@
 
 A game of snake written in C++ using ncurses.
 
+<img src="media/snake.png" alt="Snake" height="80%" width="80%"/>
+
 ## Requirements
 
 * gcc

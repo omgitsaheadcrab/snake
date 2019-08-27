@@ -1,19 +1,27 @@
-#OBJS specifies which files to compile as part of the project
-OBJS = main.cpp snake.cpp heading.cpp about.cpp
+#! Makefile
 
-#CC specifies which compiler we're using
+.POSIX:
+
 CC = g++
+CFLAGS = -g
 
-#COMPILER_FLAGS specifies the additional compilation options we're using
-# -w suppresses all warnings
-COMPILER_FLAGS = -g
+SRCDIR = src
 
-#LINKER_FLAGS specifies the libraries we're linking against
-LINKER_FLAGS = -lncursesw
+LIBS = -lncursesw
 
-#OBJ_NAME specifies the name of our exectuable
-OBJ_NAME = snake
+_OBJ = main.cpp snake.cpp heading.cpp about.cpp
+OBJ = $(patsubst %,$(SRCDIR)/%,$(_OBJ))
 
-#This is the target that compiles our executable
-all : $(OBJS)
-	$(CC) $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(OBJ_NAME)
+_DEPS = snake.h heading.h segment.h
+DEPS = $(patsubst %,$(SRCDIR)/%,$(_DEPS))
+
+$(SRCDIR)/%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+snake: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
+.PHONY: clean
+
+clean:
+	rm -f $(SRCDIR)/*.o *~ core $(SRCDIR)/*~ 
